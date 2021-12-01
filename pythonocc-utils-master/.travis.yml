@@ -1,0 +1,64 @@
+sudo: false
+
+language: cpp
+
+matrix:
+  include:
+    - env: PYTHON="3.6" CONDA_PY=36
+      os: linux
+      dist: bionic
+    - env: PYTHON="3.6" CONDA_PY=36
+      os: osx
+      osx_image: xcode9.4
+    - env: PYTHON="3.7" CONDA_PY=37
+      os: linux
+      dist: bionic
+    - env: PYTHON="3.7" CONDA_PY=37
+      os: osx
+      osx_image: xcode9.4
+
+
+install:
+  - if [ ${PYTHON:0:1} == "2" ]; then
+      if [ "$TRAVIS_OS_NAME" == "linux" ]; then
+      wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
+      else
+      wget https://repo.continuum.io/miniconda/Miniconda2-latest-MacOSX-x86_64.sh -O miniconda.sh;
+      fi;
+      else
+      if [ "$TRAVIS_OS_NAME" == "linux" ]; then
+      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+      else
+      wget https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh;
+      fi;
+    fi;
+  - chmod +x miniconda.sh
+  # When we are installing the 32 Bit conda on a 64 Bit system, the miniconda
+  # installer will ask for a "yes" despite the -b flag, so we pipe in a yes
+  - yes | ./miniconda.sh -b -p $HOME/miniconda
+  #- bash miniconda.sh -b -p -f $HOME/miniconda
+  - export PATH="$HOME/miniconda/bin:$HOME/miniconda/lib:$PATH"
+  - hash -r
+  - conda config --set always_yes yes --set changeps1 no
+  # Useful for debugging any issues with conda
+  - conda info -a
+  # osx needs a dedicate environment
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then
+      conda create -n pythonocc-utils-test;
+      source activate pythonocc-utils-test;
+    fi;
+  - conda install -c dlr-sc -c pythonocc pythonocc-core=7.4.0rc1
+
+script:
+  # osx needs a dedicate environment
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then
+      source activate pythonocc-utils-test;
+    fi;
+  - python setup.py build install
+  - cd test  
+  - python occutils_test.py
+
+branches:
+  only:
+    - master
+    - /^review/
